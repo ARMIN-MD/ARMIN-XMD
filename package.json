@@ -1,0 +1,11 @@
+{
+  "name": "armin-md",
+  "version": "1.0.0",
+  "description": "ARMIN-MD WhatsApp Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "ARMIN-MD",
+  "license": "MIT"
+}
