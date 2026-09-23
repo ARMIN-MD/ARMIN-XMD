@@ -13,15 +13,15 @@ const OWNER_NAME = "ARMIN";
 const http = require("http");
 
 const PORT = process.env.PORT || 3000;
-
-http.createserver.listen(PORT, "0.0.0.0", () => {
-  console.log(`🌐 Server running on port ${PORT}`);
-});
+const server = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
   res.end("ARMIN-XMD is running!");
-}).listen(PORT, "0.0.0.0", () => {
+});
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`🌐 Server running on port ${PORT}`);
 });
+
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
   const { version } = await fetchLatestBaileysVersion();
