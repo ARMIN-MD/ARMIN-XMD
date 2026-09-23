@@ -1,80 +1,76 @@
-const makeWASocketModule = require("@whiskeysockets/baileys");
-
 const {
+  default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion
-} = makeWASocketModule;
-
-const makeWASocket =
-  makeWASocketModule.default || makeWASocketModule;
+} = require("@whiskeysockets/baileys");
 
 const P = require("pino");
 
-const phoneNumber = "93796274067";
+const PREFIX = ".";
+const BOT_NAME = "ARMIN-XMD";
+const OWNER_NAME = "ARMIN";
+const http = require("http");
 
+const PORT = process.env.PORT || 3000;
+
+http.createserver.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Server running on port ${PORT}`);
+});
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("ARMIN-XMD is running!");
+}).listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Server running on port ${PORT}`);
+});
 async function startBot() {
-  const { state, saveCreds } =
-    await useMultiFileAuthState("auth_info");
-
+  const { state, saveCreds } = await useMultiFileAuthState("auth_info");
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
-    auth: state,
     version,
-    logger: P({ level: "silent" })
+    auth: state,
+    logger: P({ level: "silent" }),
+    printQRInTerminal: false
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  let pairingRequested = false;
-
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
-
+  sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
     if (connection === "open") {
-      console.log("✅ ARMIN-XMD وصل شد!");
-    }
-
-    if (
-      connection === "connecting" &&
-      !state.creds.registered &&
-      !pairingRequested
-    ) {
-      pairingRequested = true;
-
-      setTimeout(async () => {
-        try {
-          const code = await sock.requestPairingCode(phoneNumber);
-          console.log("");
-          console.log("🔐 کد اتصال واتساپ:");
-          console.log(code);
-          console.log("");
-        } catch (error) {
-          console.log("❌ دریافت کد ناموفق بود:");
-          console.log(error);
-          pairingRequested = false;
-        }
-      }, 3000);
+      console.log(`✅ ${BOT_NAME} وصل شد!`);
     }
 
     if (connection === "close") {
-      const statusCode =
-        lastDisconnect?.error?.output?.statusCode;
+      const code = lastDisconnect?.error?.output?.statusCode;
+      console.log("❌ اتصال قطع شد. کد:", code);
 
-      console.log("❌ اتصال قطع شد.");
-      console.log("کد خطا:", statusCode);
-
-      if (statusCode !== DisconnectReason.loggedOut) {
-        setTimeout(startBot, 5000);
+      if (code !== DisconnectReason.loggedOut) {
+        console.log("🔄 اتصال دوباره...");
+        setTimeout(startBot, 3000);
       }
     }
   });
 
-  // دریافت پیام‌ها
+  if (!sock.authState.creds.registered) {
+    const phoneNumber = "93796274067";
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+const code = await sock.requestPairingCode(phoneNumber);
+
+      console.log("\n🔐 کد اتصال واتساپ:");
+      console.log(code);
+      console.log("\n📱 WhatsApp → Settings → Linked devices → Link a device → Link with phone number instead\n");
+    } catch (err) {
+      console.log("❌ خطای Pairing Code:", err.message);
+    }
+  }
+
   sock.ev.on("messages.upsert", async ({ messages }) => {
-    for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue;
+    try {
+      const msg = messages[0];
+
+      if (!msg.message || msg.key.fromMe) return;
 
       const jid = msg.key.remoteJid;
 
@@ -83,237 +79,158 @@ async function startBot() {
         msg.message.extendedTextMessage?.text ||
         "";
 
-      const command = text.trim().toLowerCase();
+      if (!text.startsWith(PREFIX)) return;
 
-      // =========================
-      // سلام
-      // =========================
+      const command = text
+        .slice(PREFIX.length)
+        .trim()
+        .split(/\s+/)[0]
+        .toLowerCase();
 
-      if (command === "سلام") {
-        await sock.sendMessage(jid, {
-          text: "سلام 👋\nمن ARMIN-XMD هستم 🤖"
-        });
-      }
-
-      // =========================
-      // PING
-      // =========================
-
-      if (
-        command === "ping" ||
-        command === "!ping" ||
-        command === ".ping"
-      ) {
-        await sock.sendMessage(jid, {
-          text: "🏓 Pong!\n\n🤖 ARMIN-XMD فعال است."
-        });
-      }
-
-      // =========================
-      // MENU
-      // =========================
-
-      if (
-        command === "menu" ||
-        command === "!menu" ||
-        command === ".menu" ||
-        command === "/menu" ||
-        command === "منو"
-      ) {
-        const menu = `
-╭━━━━━━━━━━━━━━━━━━━━╮
-┃     🤖 ARMIN-XMD
-┃     ⚡ WHATSAPP BOT
-╰━━━━━━━━━━━━━━━━━━━━╯
-
-╭━━━〔 📋 GENERAL 〕━━━╮
+      if (command === "menu") {
+  const menu = `
+╭━━━〔 🤖 ARMIN-XMD 〕━━━╮
 ┃
-┃ 👋 سلام
-┃ 🏓 ping
-┃ ℹ️ info
-┃ 📋 menu
+┃ 👑 OWNER : ARMIN
+┃ ⚙️ PREFIX : .
+┃ 🚀 VERSION : 1.0.0
+┃ 🌐 MODE : PUBLIC
 ┃
-╰━━━━━━━━━━━━━━━━━━╯
-
-╭━━━〔 👥 GROUP 〕━━━╮
+┣━━━〔 🤖 MAIN 〕━━━
 ┃
-┃ 👥 groupinfo
-┃ 📢 tagall
-┃ 🔗 link
+┃ • .menu
+┃ • .ping
+┃ • .alive
+┃ • .uptime
+┃ • .owner
 ┃
-╰━━━━━━━━━━━━━━━━━━╯
-
-╭━━━〔 🛠️ ADMIN 〕━━━╮
+┣━━━〔 👥 GROUP 〕━━━
 ┃
-┃ 🚫 kick
-┃ ➕ add
-┃ ⬆️ promote
-┃ ⬇️ demote
+┃ • .groupinfo
+┃ • .tagall
+┃
+┣━━━〔 🛠️ TOOLS 〕━━━
+┃
+┃ • .ping
+┃ • .uptime
+┃
+┣━━━〔 🎵 MUSIC 〕━━━
+┃
+┃ • .play
+┃ • .song
+┃
+┣━━━〔 🤖 AI 〕━━━
+┃
+┃ • .ai
+┃ • .chat
+┃
+┣━━━〔 🎨 IMAGE 〕━━━
+┃
+┃ • .sticker
+┃ • .toimg
+┃
+┣━━━〔 📥 DOWNLOADER 〕━━━
+┃
+┃ • .video
+┃ • .audio
+┃
+┣━━━〔 👑 OWNER 〕━━━
+┃
+┃ • .owner
+┃ • .restart
 ┃
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 🎵 MEDIA 〕━━━╮
-┃
-┃ 🎵 music
-┃ 🎵 play
-┃
-╰━━━━━━━━━━━━━━━━━━╯
-
-╭━━━〔 👨‍💻 BOT 〕━━━╮
-┃
-┃ 🤖 ARMIN-XMD
-┃ ⚡ Version 1.0.0
-┃
-╰━━━━━━━━━━━━━━━━━━╯
-
-       ❤️ Powered by ARMIN
+✨ ${BOT_NAME}
+🔥 Powered by ARMIN
 `;
 
+  await sock.sendMessage(jid, { text: menu });
+}
+
+      else if (command === "ping") {
         await sock.sendMessage(jid, {
-          text: menu
+          text: "🏓 Pong!\n✅ ARMIN-XMD فعال است."
         });
       }
 
-      // =========================
-      // INFO
-      // =========================
-
-      if (
-        command === "info" ||
-        command === "!info" ||
-        command === ".info"
-      ) {
+      else if (command === "alive") {
         await sock.sendMessage(jid, {
-          text:
-            "🤖 نام ربات: ARMIN-XMD\n" +
-            "⚡ نسخه: 1.0.0\n" +
-            "👨‍💻 سازنده: ARMIN\n" +
-            "📱 پلتفرم: WhatsApp\n" +
-            "✅ وضعیت: فعال"
+          text: `🤖 ${BOT_NAME}\n\n✅ ربات آنلاین است.`
         });
       }
 
-      // =========================
-      // GROUP INFO
-      // =========================
+      else if (command === "uptime") {
+        const seconds = Math.floor(process.uptime());
 
-      if (
-        command === "groupinfo" ||
-        command === "!groupinfo" ||
-        command === ".groupinfo"
-      ) {
-        if (!jid.endsWith("@g.us")) {
-          await sock.sendMessage(jid, {
-            text: "❌ این دستور فقط داخل گروه کار می‌کند."
-          });
-          continue;
-        }
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
 
-        try {
-          const metadata = await sock.groupMetadata(jid);
-
-          await sock.sendMessage(jid, {
-            text:
-              "👥 اطلاعات گروه\n\n" +
-              "📌 نام: " + metadata.subject + "\n" +
-              "👤 اعضا: " + metadata.participants.length + "\n" +
-              "🆔 ID: " + jid
-          });
-        } catch (error) {
-          await sock.sendMessage(jid, {
-            text: "❌ دریافت اطلاعات گروه ناموفق بود."
-          });
-        }
-      }
-
-      // =========================
-      // TAG ALL
-      // =========================
-
-      if (
-        command === "tagall" ||
-        command === "!tagall" ||
-        command === ".tagall"
-      ) {
-        if (!jid.endsWith("@g.us")) {
-          await sock.sendMessage(jid, {
-            text: "❌ این دستور فقط داخل گروه کار می‌کند."
-          });
-          continue;
-        }
-
-        try {
-          const metadata = await sock.groupMetadata(jid);
-
-          let mentions = [];
-          let message = "📢 اعضای گروه:\n\n";
-
-          for (const member of metadata.participants) {
-            mentions.push(member.id);
-            message += "👤 @" + member.id.split("@")[0] + "\n";
-          }
-
-          await sock.sendMessage(jid, {
-            text: message,
-            mentions: mentions
-          });
-        } catch (error) {
-          await sock.sendMessage(jid, {
-            text: "❌ اجرای tagall ناموفق بود."
-          });
-        }
-      }
-
-      // =========================
-      // GROUP LINK
-      // =========================
-
-      if (
-        command === "link" ||
-        command === "!link" ||
-        command === ".link"
-      ) {
-        if (!jid.endsWith("@g.us")) {
-          await sock.sendMessage(jid, {
-            text: "❌ این دستور فقط داخل گروه کار می‌کند."
-          });
-          continue;
-        }
-
-        try {
-          const code = await sock.groupInviteCode(jid);
-
-          await sock.sendMessage(jid, {
-            text:
-              "🔗 لینک دعوت گروه:\n\n" +
-              "https://chat.whatsapp.com/" + code
-          });
-        } catch (error) {
-          await sock.sendMessage(jid, {
-            text: "❌ دریافت لینک گروه ناموفق بود."
-          });
-        }
-      }
-
-      // =========================
-      // MUSIC
-      // =========================
-
-      if (
-        command === "music" ||
-        command === "!music" ||
-        command === ".music" ||
-        command === "play" ||
-        command === "!play" ||
-        command === ".play"
-      ) {
         await sock.sendMessage(jid, {
           text:
-            "🎵 ARMIN-XMD MUSIC\n\n" +
-            "این بخش آماده است.\n" +
-            "برای پخش موسیقی باید منبع مجاز موسیقی را به ربات وصل کنیم."
+            `⏱️ Uptime\n\n` +
+            `${days} روز\n` +
+            `${hours} ساعت\n` +
+            `${minutes} دقیقه\n` +
+            `${secs} ثانیه`
         });
       }
+
+      else if (command === "owner") {
+        await sock.sendMessage(jid, {
+          text: `👑 Owner: ${OWNER_NAME}\n🤖 Bot: ${BOT_NAME}`
+        });
+      }
+
+      else if (command === "groupinfo") {
+        if (!jid.endsWith("@g.us")) {
+          return sock.sendMessage(jid, {
+            text: "❌ این دستور فقط داخل گروه کار می‌کند."
+          });
+        }
+
+        const metadata = await sock.groupMetadata(jid);
+
+        const admins = metadata.participants.filter(
+          p => p.admin === "admin" || p.admin === "superadmin"
+        );
+
+        await sock.sendMessage(jid, {
+          text:
+            `👥 اطلاعات گروه\n\n` +
+            `📌 نام: ${metadata.subject}\n` +
+            `👤 اعضا: ${metadata.participants.length}\n` +
+            `👮 ادمین‌ها: ${admins.length}`
+        });
+      }
+
+      else if (command === "tagall") {
+        if (!jid.endsWith("@g.us")) {
+          return sock.sendMessage(jid, {
+            text: "❌ این دستور فقط داخل گروه کار می‌کند."
+          });
+        }
+
+        const metadata = await sock.groupMetadata(jid);
+
+        const mentions = metadata.participants.map(p => p.id);
+
+        let text = "📢 اعضای گروه:\n\n";
+
+        for (const participant of metadata.participants) {
+          text += `@${participant.id.split("@")[0]}\n`;
+        }
+
+        await sock.sendMessage(jid, {
+          text,
+          mentions
+        });
+      }
+
+    } catch (err) {
+      console.log("❌ خطای دستور:", err);
     }
   });
 }
