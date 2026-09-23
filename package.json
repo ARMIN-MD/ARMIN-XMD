@@ -9,6 +9,7 @@
   "author": "ARMIN-MD",
   "license": "MIT",
   "dependencies": {
+    "@upstash/redis": "^1.39.0",
     "@whiskeysockets/baileys": "^6.7.23",
     "pino": "^9.0.0",
     "qrcode-terminal": "^0.12.0"
