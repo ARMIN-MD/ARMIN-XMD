@@ -175,15 +175,7 @@ sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
       return;
     }
 
-    if (state.creds.registered && !reconnecting) {
-      reconnecting = true;
-
-      console.log("🔄 اتصال دوباره در 5 ثانیه...");
-
-      setTimeout(() => {
-        startBot();
-      }, 5000);
-    }
+    console.log("❌ اتصال بسته شد.");
   }
 });
 
