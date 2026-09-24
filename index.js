@@ -150,6 +150,8 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
+    let pairingRequested = false;
+
     sock.ev.on(
       "connection.update",
       async ({ connection, lastDisconnect }) => {
@@ -163,39 +165,56 @@ async function startBot() {
 
           console.log("❌ اتصال قطع شد. کد:", code);
 
-          if (code !== DisconnectReason.loggedOut) {
-            console.log("🔄 اتصال دوباره...");
-            setTimeout(startBot, 3000);
-          } else {
+          if (code === DisconnectReason.loggedOut) {
             console.log("🚪 Session از واتساپ خارج شده است.");
+            return;
+          }
+
+          console.log("🔄 اتصال دوباره...");
+
+          setTimeout(() => {
+            startBot();
+          }, 5000);
+        }
+
+        if (
+          connection === "connecting" &&
+          !sock.authState.creds.registered &&
+          !pairingRequested
+        ) {
+          pairingRequested = true;
+
+          try {
+            await new Promise(resolve =>
+              setTimeout(resolve, 5000)
+            );
+
+            if (sock.authState.creds.registered) {
+              return;
+            }
+
+            const code =
+              await sock.requestPairingCode(
+                PHONE_NUMBER
+              );
+
+            console.log("\n🔐 کد اتصال واتساپ:");
+            console.log(code);
+
+            console.log(
+              "\n📱 WhatsApp → Settings → Linked devices → " +
+              "Link a device → Link with phone number instead\n"
+            );
+
+          } catch (err) {
+            console.log(
+              "❌ خطای Pairing Code:",
+              err.message
+            );
           }
         }
       }
     );
-
-    if (!sock.authState.creds.registered) {
-      try {
-        await new Promise(resolve =>
-          setTimeout(resolve, 3000)
-        );
-
-        const code =
-          await sock.requestPairingCode(PHONE_NUMBER);
-
-        console.log("\n🔐 کد اتصال واتساپ:");
-        console.log(code);
-
-        console.log(
-          "\n📱 WhatsApp → Settings → Linked devices → " +
-          "Link a device → Link with phone number instead\n"
-        );
-      } catch (err) {
-        console.log(
-          "❌ خطای Pairing Code:",
-          err.message
-        );
-      }
-    }
 
     sock.ev.on(
       "messages.upsert",
