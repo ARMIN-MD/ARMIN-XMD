@@ -60,9 +60,16 @@ async function useRedisAuthState() {
     if (!value) return null;
 
     try {
-      return JSON.parse(value, BufferJSON.reviver);
+      if (typeof value === "string") {
+        return JSON.parse(value, BufferJSON.reviver);
+      }
+
+      return JSON.parse(
+        JSON.stringify(value),
+        BufferJSON.reviver
+      );
     } catch (err) {
-      console.log("❌ Redis JSON error:", key);
+      console.log("❌ Redis JSON error:", key, err.message);
       return null;
     }
   };
