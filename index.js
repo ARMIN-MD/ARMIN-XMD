@@ -170,7 +170,7 @@ sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
 
     console.log("❌ اتصال قطع شد. کد:", code);
 
-    if (code === DisconnectReason.loggedOut) {
+    if (code === DisconnectReason.loggedOut && state.creds.registered) {
       console.log("🚪 Session از واتساپ خارج شده است.");
       return;
     }
