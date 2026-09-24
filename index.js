@@ -132,7 +132,7 @@ async function useRedisAuthState() {
 }
 
 async function startBot() {
-  try {sock.ev.on("creds.update", saveCreds);
+  try {
     console.log("🔄 در حال خواندن Session از Redis...");
 
     const { state, saveCreds } =
@@ -153,73 +153,6 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    let pairingRequested = false;
-
-    sock.ev.on(
-      "connection.update",
-      async ({ connection, lastDisconnect }) => {
-        if (connection === "open") {
-          console.log(`✅ ${BOT_NAME} وصل شد!`);
-        }
-
-        if (connection === "close") {
-          const code =
-            lastDisconnect?.error?.output?.statusCode;
-
-          console.log("❌ اتصال قطع شد. کد:", code);
-
-          if (code === DisconnectReason.loggedOut) {
-            console.log("🚪 Session از واتساپ خارج شده است.");
-            return;
-          }
-
-          console.log("🔄 اتصال دوباره...");
-
-          setTimeout(() => {
-            startBot();
-          }, 5000);
-        }
-
-        if (
-          connection === "connecting" &&
-          !sock.authState.creds.registered &&
-          !pairingRequested
-        ) {
-          pairingRequested = true;
-
-          try {
-            await new Promise(resolve =>
-              setTimeout(resolve, 5000)
-            );
-
-            if (sock.authState.creds.registered) {
-              return;
-            }
-
-            const code =
-              await sock.requestPairingCode(
-                PHONE_NUMBER
-              );
-
-            console.log("\n🔐 کد اتصال واتساپ:");
-            console.log(code);
-
-            console.log(
-              "\n📱 WhatsApp → Settings → Linked devices → " +
-              "Link a device → Link with phone number instead\n"
-            );
-
-          } catch (err) {
-            console.log(
-              "❌ خطای Pairing Code:",
-              err.message
-            );
-          }
-        }
-      }
-    );
-
-    sock.ev.on(sock.ev.on("creds.update", saveCreds);
 
 let pairingRequested = false;
 let reconnecting = false;
@@ -281,6 +214,7 @@ if (!state.creds.registered && !pairingRequested) {
     console.log("❌ خطای Pairing Code:", err.message);
   }
 }
+sock.ev.on(
       "messages.upsert",
       async ({ messages }) => {
         try {
