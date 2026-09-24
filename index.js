@@ -135,77 +135,59 @@ async function startBot() {
   try {
     console.log("🔄 در حال خواندن Session از Redis...");
 
-    const { state, saveCreds } =
-      await useRedisAuthState();
+    const { state, saveCreds } = await useRedisAuthState();
 
-    const { version } =
-      await fetchLatestBaileysVersion();
+    const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
-  version,
-  auth: state,
-  logger: P({ level: "silent" }),
-  printQRInTerminal: false,
-  markOnlineOnConnect: false,
-  syncFullHistory: false,
-  browser: ["Ubuntu", "Chrome", "122.0.0.0"]
-});
+      version,
+      auth: state,
+      logger: P({ level: "silent" }),
+      printQRInTerminal: false,
+      markOnlineOnConnect: false,
+      syncFullHistory: false,
+      browser: ["Ubuntu", "Chrome", "122.0.0.0"]
+    });
 
     sock.ev.on("creds.update", saveCreds);
 
+    sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+      if (connection === "open") {
+        console.log(`✅ ${BOT_NAME} وصل شد!`);
+      }
 
-let pairingRequested = false;
-let reconnecting = false;
+      if (connection === "close") {
+        const code =
+          lastDisconnect?.error?.output?.statusCode;
 
-sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
+        console.log("❌ اتصال قطع شد. کد:", code);
 
-  if (connection === "open") {
-    console.log(`✅ ${BOT_NAME} وصل شد!`);
-    reconnecting = false;
-  }
+        if (code === DisconnectReason.loggedOut) {
+          console.log("🚪 Session از واتساپ خارج شده است.");
+        } else {
+          console.log("❌ اتصال بسته شد.");
+        }
+      }
+    });
 
-  if (connection === "close") {
-    const code =
-      lastDisconnect?.error?.output?.statusCode;
+    if (!state.creds.registered) {
+      try {
+        console.log("⏳ آماده‌سازی Pairing Code...");
 
-    console.log("❌ اتصال قطع شد. کد:", code);
+        const code = await sock.requestPairingCode(PHONE_NUMBER);
 
-    if (code === DisconnectReason.loggedOut && state.creds.registered) {
-      console.log("🚪 Session از واتساپ خارج شده است.");
-      return;
+        console.log("\n🔐 کد اتصال واتساپ:");
+        console.log(code);
+
+        console.log(
+          "\n📱 WhatsApp → Settings → Linked devices → " +
+          "Link a device → Link with phone number instead\n"
+        );
+      } catch (err) {
+        console.log("❌ خطای Pairing Code:", err.message);
+      }
     }
 
-    console.log("❌ اتصال بسته شد.");
-  }
-});
-
-// درخواست Pairing Code بعد از ساخته شدن Socket
-if (!state.creds.registered && !pairingRequested) {
-  pairingRequested = true;
-
-  try {
-    await new Promise(resolve =>
-      setTimeout(resolve, 1500)
-    );
-
-    if (state.creds.registered) {
-      return;
-    }
-
-    const code = await sock.requestPairingCode(PHONE_NUMBER);
-
-    console.log("\n🔐 کد اتصال واتساپ:");
-    console.log(code);
-
-    console.log(
-      "\n📱 WhatsApp → Settings → Linked devices → " +
-      "Link a device → Link with phone number instead\n"
-    );
-
-  } catch (err) {
-    console.log("❌ خطای Pairing Code:", err.message);
-  }
-}
 sock.ev.on(
       "messages.upsert",
       async ({ messages }) => {
