@@ -142,11 +142,14 @@ async function startBot() {
       await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
-      version,
-      auth: state,
-      logger: P({ level: "silent" }),
-      printQRInTerminal: false
-    });
+  version,
+  auth: state,
+  logger: P({ level: "silent" }),
+  printQRInTerminal: false,
+  markOnlineOnConnect: false,
+  syncFullHistory: false,
+  browser: ["Ubuntu", "Chrome", "122.0.0.0"]
+});
 
     sock.ev.on("creds.update", saveCreds);
 
