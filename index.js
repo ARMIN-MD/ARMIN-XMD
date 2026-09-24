@@ -14,7 +14,7 @@ const http = require("http");
 const PREFIX = ".";
 const BOT_NAME = "ARMIN-XMD";
 const OWNER_NAME = "ARMIN";
-const PHONE_NUMBER = "93796274067";
+const PHONE_NUMBER = process.env.PHONE_NUMBER;
 const PORT = process.env.PORT || 3000;
 
 const REDIS_PREFIX = "armin-xmd:auth:main:";
