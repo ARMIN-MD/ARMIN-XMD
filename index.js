@@ -157,10 +157,11 @@ async function startBot() {
       }
 
       if (connection === "close") {
-        const code =
-          lastDisconnect?.error?.output?.statusCode;
+        const error = lastDisconnect?.error;
+        const code = error?.output?.statusCode;
 
         console.log("❌ اتصال قطع شد. کد:", code);
+        console.log("🔎 خطای اتصال:", error?.message || error?.toString());
 
         if (code === DisconnectReason.loggedOut) {
           console.log("🚪 Session از واتساپ خارج شده است.");
