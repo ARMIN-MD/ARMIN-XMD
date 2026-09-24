@@ -175,7 +175,7 @@ sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
       return;
     }
 
-    if (!reconnecting) {
+    if (state.creds.registered && !reconnecting) {
       reconnecting = true;
 
       console.log("🔄 اتصال دوباره در 5 ثانیه...");
